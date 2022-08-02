@@ -27,13 +27,20 @@ HASHKEY = HASHKEY.hexdigest()
 URLKEYS = f'&ts={TS}&apikey={PUBLICKEY}&hash={HASHKEY}'
 
 
-def getComics(id):
+def getComics(id,comic):
+    QUERY = f'characters={id}'
+    if id == -1:
+        QUERY = f'titleStartsWith={comic}'
+    elif id != -1 and comic != None:
+        QUERY += f'&titleStartsWith={comic}'
+    
     try:
-        response = requests.get(URLBASE+f'/comics?characters={id}/?limit=100&'+URLKEYS)
+        response = requests.get(URLBASE+f'/comics?{QUERY}&limit=100'+URLKEYS)
         response.raise_for_status()
 
     except HTTPError as _httperr:
         print(f'HTTP error occurred: {_httperr}')
+        print(response.json())
     except Exception as err:
         print(f'Other error occurred: {err}')
     else:
@@ -53,15 +60,22 @@ def getComics(id):
 
 # Esta funcion recibe un parametro dictionary, que posee 3 propiedades
 # 1.- Nombre del Personaje
-def getmMarveInformation(filter):
+def getMarveInformation(filter):
     character = filter['personaje']
-    requieredComic = False
+    comic = filter['comic']
+    requiereComic = False
     QUERY = ''
     if character != '' and character != None:
         QUERY = f'name={character}'
         requiereComic = True
     else:
         QUERY = f'orderBy=name'
+
+    if (comic != '' and  comic != None) and (character == '' or character == None):
+        return {
+            "personaje":[],
+            "comic": getComics(-1,comic)
+        } 
 
     try:
         response = requests.get(URLBASE+'/characters?limit=100&'+QUERY+URLKEYS)
@@ -86,7 +100,7 @@ def getmMarveInformation(filter):
             }
             # En caso de que se una busqueda especifica se obtienen los comics relacionados al personaje
             if requiereComic:
-                resultComic = getComics(item['id'])
+                resultComic = getComics(item['id'],comic)
 
             resultPersonaje.append(personaje)
 
